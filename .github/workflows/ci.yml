@@ -157,13 +157,7 @@ jobs:
         run: yarn build
 
       - name: Test
-        if: ${{ matrix.os != 'windows-latest' }}
         run: yarn test
-
-      # Turbo seems to make the tests hang on Windows, just run them directly
-      - name: Test (Windows)
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: yarn workspace astro run test
 
   # Changelog can only run _after_ Build and Test.
   # We download all `dist/` artifacts from GitHub to skip the build process.
