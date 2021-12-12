@@ -5,8 +5,8 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "esbuild src/index.ts --target=node13 --outfile=dist/index.js",
-    "types": "tsc -p .",
-    "test": "npm run build && tsm node_modules/uvu/bin.js test"
+    "postbuild": "tsc -p .",
+    "test": "tsm node_modules/uvu/bin.js test"
   },
   "exports": {
     ".": "./dist/index.js",
@@ -26,7 +26,8 @@
   },
   "license": "MIT",
   "volta": {
-    "node": "12.22.7"
+    "node": "12.22.7",
+    "yarn": "1.22.17"
   },
   "dependencies": {
     "cacache": "^15.3.0",
