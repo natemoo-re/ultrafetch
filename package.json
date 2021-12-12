@@ -1,8 +1,16 @@
 {
   "name": "ultrafetch",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/natemoo-re/ultrafetch"
+  },
+  "bugs": {
+    "url": "https://github.com/natemoo-re/ultrafetch/issues"
+  },
+  "homepage": "https://github.com/natemoo-re/ultrafetch#README",
   "scripts": {
     "build": "esbuild src/index.ts --target=node13 --outfile=dist/index.js",
     "postbuild": "tsc -p .",
