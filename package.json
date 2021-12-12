@@ -1,7 +1,7 @@
 {
   "name": "ultrafetch",
   "type": "module",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "types": "./dist/index.d.ts",
   "repository": {
     "type": "git",
@@ -17,6 +17,10 @@
     "lint": "prettier \"**/*.{js,ts,md}\"",
     "test": "tsm node_modules/uvu/bin.js test"
   },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "exports": {
     ".": "./dist/index.js",
     "./package.json": "./package.json"

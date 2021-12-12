@@ -1,9 +1,9 @@
 import type { RequestInfo, RequestInit } from "node-fetch";
 import type { CachePolicyObject } from "http-cache-semantics";
 
-import { fileURLToPath } from "url";
 import { createReadStream, statSync } from "fs";
 import httpFetch, { Request, Response } from "node-fetch";
+import { fileURLToPath, pathToFileURL } from "url";
 import cacache from "cacache";
 import CachePolicy from "http-cache-semantics";
 
@@ -24,6 +24,7 @@ interface CacheValueObject {
 }
 
 const key = (url: string) => `v${CACHE_VERSION}::${url}`;
+const withTrailingSlash = (path: string) => path.replace(/\/$/, '') + '/';
 
 class Cache {
   private cachePath: string;
@@ -154,9 +155,11 @@ class UltraFetch {
   private cache: Cache;
 
   constructor(opts?: UltraFetchOptions) {
-    let cacheDir =
-      opts?.cacheDir ??
-      new URL("../node_modules/.cache/ultrafetch", import.meta.url);
+    let cacheDir = opts?.cacheDir;
+    if (!cacheDir) {
+      cacheDir = new URL("./node_modules/.cache/ultrafetch", pathToFileURL(withTrailingSlash(process.cwd())));
+      console.log(cacheDir)
+    }
     this.cache = new Cache(cacheDir);
     this.fetch = this.fetch.bind(this);
   }
