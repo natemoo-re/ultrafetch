@@ -170,7 +170,7 @@ jobs:
   changelog:
     name: Changelog PR or Release
     if: ${{ github.ref == 'main' && github.repository_owner == 'withastro' }}
-    needs: [lint, test, smoke]
+    needs: [lint, test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
