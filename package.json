@@ -6,6 +6,7 @@
   "scripts": {
     "build": "esbuild src/index.ts --target=node13 --outfile=dist/index.js",
     "postbuild": "tsc -p .",
+    "lint": "prettier \"**/*.{js,ts,md}\"",
     "test": "tsm node_modules/uvu/bin.js test"
   },
   "exports": {
@@ -40,6 +41,7 @@
     "@types/http-cache-semantics": "^4.0.1",
     "del": "^6.0.0",
     "esbuild": "^0.14.2",
+    "prettier": "^2.5.1",
     "tsm": "^2.2.1",
     "typescript": "^4.5.3",
     "uvu": "^0.5.2"
