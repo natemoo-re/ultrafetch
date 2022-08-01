@@ -1,5 +1,5 @@
 {
-  "include": ["src/index.ts"],
+  "include": ["src"],
   "compilerOptions": {
     "declaration": true,
     "emitDeclarationOnly": true,
@@ -11,6 +11,6 @@
     "module": "ES2020",
     "outDir": "./dist",
     "declarationDir": "./dist",
-    "target": "ES2019",
+    "target": "ES2020",
   }
 }
