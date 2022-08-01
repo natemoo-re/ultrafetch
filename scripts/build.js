@@ -1,11 +1,6 @@
-import fs from 'node:fs'
+import fs, { mkdirSync } from 'node:fs'
 import { build } from 'esbuild'
 import { Project } from 'ts-morph'
-
-try {
-    fs.rmSync('../dist', { recursive: true })
-} catch (e) {}
-fs.mkdirSync('../dist', { recursive: true })
 
 const project = new Project({
   compilerOptions: {
@@ -26,6 +21,7 @@ export declare function isCached(response: ResponseLike): boolean;`)
             contents.push(file.text.replace(`export { isCached } from './convert.js';`, ''));
         }
     }
+    mkdirSync(new URL('../dist', import.meta.url), { recursive: true })
     fs.writeFileSync(new URL('../dist/index.d.ts', import.meta.url), contents.join(''))
 }
 emitToSingleFile()
