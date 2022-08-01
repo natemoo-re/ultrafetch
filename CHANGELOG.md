@@ -1,5 +1,17 @@
 # ultrafetch
 
+## 0.2.0
+
+### Minor Changes
+
+- 7c3e04b: New, modular structure allows extension of existing `fetch` implementations with a custom cache.
+
+  ```js
+  import { withCache } from "ultrafetch";
+
+  const enhancedFetch = withCache(fetch, { cache: new Map() });
+  ```
+
 ## 0.1.2
 
 ### Patch Changes
