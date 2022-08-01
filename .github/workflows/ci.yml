@@ -11,202 +11,25 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request_target' && github.head_ref || github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    shell: bash
-
 jobs:
-  # Lint can run in parallel with Build.
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v2
-
-      - name: Setup Node
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-          cache: 'yarn'
-      
-      - name: Cache Node Modules
-        id: cache-node
-        uses: actions/cache@v2
-        with:
-          path: "**/node_modules"
-          key: cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-
-
-      - name: Install NPM Dependencies
-        if: ${{ steps.cache-node.outputs.cache-hit != 'true' }}
-        run: yarn install --prefer-offline --frozen-lockfile --ignore-engines --registry https://registry.npmjs.org --network-timeout 300000
-        env:
-          CI: true
-
-      - name: Setup Workspace
-        if: ${{ steps.cache-node.outputs.cache-hit == 'true' }}
-        run: yarn --frozen-lockfile --ignore-engines --offline
-      
-      # Lint autofix cannot run on forks, so just skip those! See https://github.com/wearerequired/lint-action/issues/13
-      - name: Lint (External)
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.owner.login != github.repository_owner }}
-        run: yarn lint
-        
-      # Otherwise, run lint autofixer
-      - name: Lint
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.owner.login == github.repository_owner }}
-        uses: wearerequired/lint-action@v1.10.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          prettier: true
-          auto_fix: true
-          git_name: github-actions[bot]
-          git_email: github-actions[bot]@users.noreply.github.com
-          commit_message: 'chore(lint): ${linter} fix'
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          neutral_check_on_warning: true
-
-  # Build installs all dependencies and runs our full build pipeline.
   build:
     name: Build Packages
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup Node
-        uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2.2.1
+      - uses: actions/setup-node@v3
         with:
-          node-version: 16
-          cache: 'yarn'
-
-      - name: Cache Node Modules
-        id: cache-node
-        uses: actions/cache@v2
+          node-version: 18
+          cache: 'pnpm'
+      - if: ${{ steps.cache-node.outputs.cache-hit != 'true' }}
+        run: pnpm install
+      - run: pnpm run build
+      - run: pnpm run test
+      - uses: changesets/action@v1
         with:
-          path: "**/node_modules"
-          key: cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-
-
-      - name: Install NPM Dependencies
-        if: ${{ steps.cache-node.outputs.cache-hit != 'true' }}
-        run: yarn install --prefer-offline --frozen-lockfile --ignore-engines --registry https://registry.npmjs.org --network-timeout 300000
-        env:
-          CI: true
-
-      - name: Setup Workspace
-        if: ${{ steps.cache-node.outputs.cache-hit == 'true' }}
-        run: yarn --frozen-lockfile --ignore-engines --offline
-
-      - name: Build Packages
-        run: yarn build
-  
-  # Test depends on Build's output, which allows us to skip any build process!
-  test:
-    name: 'Test: ${{ matrix.os }} (node@${{ matrix.node_version }})'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node_version: [12, 14, 16]
-        include:
-          - os: windows-latest
-            node_version: 16
-          - os: macos-latest
-            node_version: 16
-      fail-fast: false
-    needs:
-      - build
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup node@${{ matrix.node_version }}
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node_version }}
-          cache: 'yarn'
-
-      - name: Cache Node Modules
-        id: cache-node
-        uses: actions/cache@v2
-        with:
-          path: "**/node_modules"
-          key: cache-node_modules-${{ runner.os }}-${{ matrix.node_version }}-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            cache-node_modules-${{ runner.os }}-${{ matrix.node_version }}-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-            cache-node_modules-${{ runner.os }}-${{ matrix.node_version }}-${{ hashFiles('**/yarn.lock') }}-
-
-      - name: Install NPM Dependencies
-        if: ${{ steps.cache-node.outputs.cache-hit != 'true' }}
-        run: yarn install --prefer-offline --frozen-lockfile --ignore-engines --registry https://registry.npmjs.org --network-timeout 300000
-        env:
-          CI: true
-
-      - name: Setup Workspace
-        if: ${{ steps.cache-node.outputs.cache-hit == 'true' }}
-        run: yarn --frozen-lockfile --ignore-engines --offline
-
-      - name: Build
-        run: yarn build
-
-      - name: Test
-        run: yarn test
-
-  # Changelog can only run _after_ Build and Test.
-  # We download all `dist/` artifacts from GitHub to skip the build process.
-  changelog:
-    name: Changelog PR or Release
-    if: ${{ github.ref == 'main' && github.repository_owner == 'withastro' }}
-    needs: [lint, test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Setup node@16
-        uses: actions/setup-node@v2
-        with:
-          node-version: 16
-          cache: 'yarn'
-
-      - name: Cache Node Modules
-        id: cache-node
-        uses: actions/cache@v2
-        with:
-          path: "**/node_modules"
-          key: cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-          restore-keys: |
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-${{ github.run_id }}
-            cache-node_modules-${{ runner.os }}-16-${{ hashFiles('**/yarn.lock') }}-
-
-      - name: Install NPM Dependencies
-        if: ${{ steps.cache-node.outputs.cache-hit != 'true' }}
-        run: yarn install --prefer-offline --frozen-lockfile --ignore-engines --registry https://registry.npmjs.org --network-timeout 300000
-        env:
-          CI: true
-
-      - name: Setup Workspace
-        if: ${{ steps.cache-node.outputs.cache-hit == 'true' }}
-        run: yarn --frozen-lockfile --ignore-engines --offline
-
-      - name: Build
-        run: yarn build
-      
-      - name: Create Release Pull Request or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          publish: yarn changeset publish
-          commit: 'chore: release'
+          publish: pnpm changeset publish
+          commit: '[ci] release'
           title: '[ci] release'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
