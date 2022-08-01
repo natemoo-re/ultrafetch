@@ -12,8 +12,8 @@
   },
   "homepage": "https://github.com/natemoo-re/ultrafetch#README",
   "scripts": {
-    "build": "esbuild src/index.ts --target=node14 --outfile=dist/index.js",
-    "postbuild": "tsc -p .",
+    "dev": "node ./scripts/build.js --watch",
+    "build": "node ./scripts/build.js",
     "lint": "prettier \"**/*.{js,ts,md}\"",
     "test": "vitest"
   },
@@ -23,6 +23,7 @@
   ],
   "exports": {
     ".": "./dist/index.js",
+    "./dist/*": "./dist/*",
     "./package.json": "./package.json"
   },
   "keywords": [
@@ -42,17 +43,21 @@
     "node": "18.7.0"
   },
   "packageManager": "pnpm@7.6.0",
-  "dependencies": {
-    "http-cache-semantics": "^4.1.0"
-  },
+  "bundledDependencies": [
+    "http-cache-semantics"
+  ],
   "devDependencies": {
     "@changesets/cli": "^2.18.1",
     "@types/cacache": "^15.0.1",
     "@types/http-cache-semantics": "^4.0.1",
-    "esbuild": "^0.14.2",
+    "esbuild": "^0.14.51",
+    "http-cache-semantics": "^4.1.0",
     "node-fetch": "^3.2.10",
     "prettier": "^2.5.1",
-    "typescript": "^4.5.3",
+    "rollup": "^2.77.2",
+    "rollup-plugin-dts": "^4.2.2",
+    "ts-morph": "^15.1.0",
+    "typescript": "^4.7.4",
     "vitest": "^0.20.2"
   }
 }

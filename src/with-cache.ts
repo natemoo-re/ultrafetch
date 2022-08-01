@@ -11,7 +11,7 @@ export interface AsyncMap<K, V> {
     readonly size: number;
 }
 
-export type Cache = Map<string, string> | AsyncMap<string, string>;
+type Cache = Map<string, string> | AsyncMap<string, string>;
 
 export interface WithCacheOptions {
   cache?: Cache;
