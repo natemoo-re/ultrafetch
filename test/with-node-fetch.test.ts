@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import withCache, { isCached } from "../src";
+import { withCache, isCached } from "../src";
 import { it, expect } from "vitest";
 
 it("works with Node Fetch", async () => {

@@ -1,4 +1,4 @@
-import withCache from "../src";
+import { withCache } from "../src";
 import { it, expect } from "vitest";
 
 it("allows custom cache", async () => {

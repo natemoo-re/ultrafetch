@@ -1,4 +1,4 @@
-import withCache, { isCached } from "../src/";
+import { withCache, isCached } from "../src/";
 import { it, expect } from "vitest";
 
 it("exports", () => {
