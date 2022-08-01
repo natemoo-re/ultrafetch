@@ -1,5 +1,11 @@
 # ultrafetch
 
+## 0.2.1
+
+### Patch Changes
+
+- 48b691a: Cleaner build output, bundled declaration file
+
 ## 0.2.0
 
 ### Minor Changes
