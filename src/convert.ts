@@ -83,17 +83,25 @@ const IS_CACHED = Symbol('cached');
 
 export function updateHeaders(reqOrRes: Request, headers: CachePolicy.Headers): Request;
 export function updateHeaders(reqOrRes: Response, headers: CachePolicy.Headers): Response;
-export function updateHeaders<T extends Request|Response>(reqOrRes: T, headers: CachePolicy.Headers) {
-    const newReqOrRes = reqOrRes.clone();
-    for (const [key, value] of Object.entries(headers)) {
+export function updateHeaders(reqOrRes: Request | Response, _headers: CachePolicy.Headers) {
+    const headers = new Headers(reqOrRes.headers);
+    for (const [key, value] of Object.entries(_headers)) {
+        if (headers.has(key) && headers.get(key) === value) continue;
         if (Array.isArray(value)) {
-            value.forEach((val) => newReqOrRes.headers.append(key, val));
+            value.forEach((val) => headers.append(key, val));
         } else if (typeof value !== "undefined") {
-            newReqOrRes.headers.append(key, value);
+            headers.append(key, value);
         }
     }
-    Object.defineProperty(newReqOrRes, IS_CACHED, { value: true, enumerable: false, writable: false });
-    return newReqOrRes;
+    if (reqOrRes instanceof Request) {
+        const request = new Request(reqOrRes.url, { ...reqOrRes, headers });
+        Object.defineProperty(request, IS_CACHED, { value: true, enumerable: false, writable: false });
+        return request;
+    } else if (reqOrRes instanceof Response) {
+        const response = new Response(reqOrRes.body, { ...reqOrRes, headers });
+        Object.defineProperty(response, IS_CACHED, { value: true, enumerable: false, writable: false });
+        return response;
+    }
 }
 
 export type ResponseLike = Omit<Response, 'body'|'clone'>
