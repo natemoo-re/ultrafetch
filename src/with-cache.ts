@@ -29,10 +29,10 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       }
       request = new Request(input, init);
     }
-    if (await cache.has(request.url)) {
+    const maybeCachedItem = await cache.get(request.url);
+    if (maybeCachedItem) {
       // Deserialize cached policy and response
-      const cachedItem = (await cache.get(request.url))!;
-      const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(cachedItem);
+      const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(maybeCachedItem);
       const policy = CachePolicy.fromObject(cachedPolicy);
       const cacheableRequest = webToCachePolicyRequest(request);
       
