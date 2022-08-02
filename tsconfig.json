@@ -1,5 +1,5 @@
 {
-  "include": ["src/index.ts"],
+  "include": ["src"],
   "compilerOptions": {
     "declaration": true,
     "emitDeclarationOnly": true,
