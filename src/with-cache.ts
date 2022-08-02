@@ -61,7 +61,7 @@ async function getCacheKey(request: Request, init?: RequestInit) {
 }
 
 export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opts?: WithCacheOptions): Fetch {
-  const cache = opts?.cache ?? new Map();
+  const cache = opts?.cache ?? new Map<string, string>();
   return (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     let request: Request;
     if (input instanceof Request) {
@@ -77,11 +77,11 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
     if (!cacheKey) {
       return fetch(request.url, request);
     }
-
-    if (await cache.has(cacheKey)) {
+    
+    const maybeCachedItem = await cache.get(cacheKey);
+    if (typeof maybeCachedItem === "string") {
       // Deserialize cached policy and response
-      const cachedItem = (await cache.get(cacheKey))!;
-      const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(cachedItem);
+      const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(maybeCachedItem);
       const policy = CachePolicy.fromObject(cachedPolicy);
       const cacheableRequest = webToCachePolicyRequest(request);
       
