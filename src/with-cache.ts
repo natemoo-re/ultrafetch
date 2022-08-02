@@ -78,7 +78,7 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       return fetch(request.url, request);
     }
     
-    const maybeCachedItem = await cache.get(request.url);
+    const maybeCachedItem = await cache.get(cacheKey);
     if (typeof maybeCachedItem === "string") {
       // Deserialize cached policy and response
       const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(maybeCachedItem);
