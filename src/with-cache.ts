@@ -1,4 +1,6 @@
 import CachePolicy from "http-cache-semantics";
+import { unique } from "shorthash";
+
 import { webToCachePolicyRequest, webToCachePolicyResponse, cachedResponseToWeb, webToCachedResponse, updateHeaders } from './convert.js';
 export { isCached } from './convert.js';
 
@@ -17,6 +19,47 @@ export interface WithCacheOptions {
   cache?: Cache;
 }
 
+function normalizeURL(input: URL) {
+  if (input.search) {
+    input.searchParams.sort();
+    input.search = `?${input.searchParams}`
+  }
+  if (input.pathname === '/') {
+    return input.toString().replace(/\/$/, '');
+  }
+  return input.toString();
+}
+
+async function getCacheKey(request: Request, init?: RequestInit) {
+  const url = new URL(request.url);
+  const key = `${request.method}:${normalizeURL(url)}`;
+  
+  if (['POST', 'PATCH', 'PUT'].includes(request.method)) {
+    let body = init?.body;
+    
+    // If we can't read `body` or `body` is streamable, skip the cache by returning `undefined`.
+    if (!body) return;
+    if (body instanceof ReadableStream || (typeof body === 'object' && 'on' in (body as any))) return;
+
+    // Convert valid `BodyInit` values to hashable strings
+    if (body instanceof Blob) body = await body.text()
+    if (body instanceof URLSearchParams) {
+      body.sort();
+      body = body.toString()
+    }
+    if (body instanceof FormData) {
+      	const obj: Record<string, FormDataEntryValue> = {};
+        for (const [key, value] of body) {
+          obj[key] = value;
+        }
+        body = JSON.stringify(obj);
+    }
+    const hash = unique(body.toString());
+    return `${key}:${hash}`;
+  }
+  return key;
+}
+
 export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opts?: WithCacheOptions): Fetch {
   const cache = opts?.cache ?? new Map();
   return (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
@@ -29,9 +72,15 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       }
       request = new Request(input, init);
     }
-    if (await cache.has(request.url)) {
+    const cacheKey = await getCacheKey(request, init)
+    // No valid cache key, skip custom logic
+    if (!cacheKey) {
+      return fetch(request.url, request);
+    }
+
+    if (await cache.has(cacheKey)) {
       // Deserialize cached policy and response
-      const cachedItem = (await cache.get(request.url))!;
+      const cachedItem = (await cache.get(cacheKey))!;
       const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(cachedItem);
       const policy = CachePolicy.fromObject(cachedPolicy);
       const cacheableRequest = webToCachePolicyRequest(request);
@@ -49,10 +98,16 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
         webToCachePolicyResponse(revalidatedResponse)
       );
       const response = modified ? revalidatedResponse : cachedResponseToWeb(cachedResponse);
+
+      // We can't store this response! Clear from the cache and return it.
+      if (!revalidatedPolicy.storable()) {
+        await cache.delete(cacheKey);
+        return response;
+      }
       
       // Update the cache with the revalidated response
       await (cache as any).set(
-        request.url,
+        cacheKey,
         JSON.stringify({ policy: revalidatedPolicy.toObject(), response: webToCachedResponse(response) }),
         { ttl: revalidatedPolicy.timeToLive() }
       );
@@ -71,7 +126,7 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
     
     // Store CachePolicy and Response in the cache
     await (cache as any).set(
-      request.url,
+      cacheKey,
       JSON.stringify({ policy: policy.toObject(), response: await webToCachedResponse(response) }),
       { ttl: policy.timeToLive() }
     );

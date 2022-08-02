@@ -32,7 +32,7 @@ export function webToCachePolicyResponse({ status, headers: _headers }: Response
     };
 }
 
-async function readRequestBody(response: OutgoingMessage | Response): Promise<number[]|undefined> {
+async function readResponseBody(response: OutgoingMessage | Response): Promise<number[]|undefined> {
     if ('on' in response) {
         let body = Buffer.from([]);
         let resBodyComplete = new Promise<Buffer>((resolve, reject) => {
@@ -54,7 +54,7 @@ async function readRequestBody(response: OutgoingMessage | Response): Promise<nu
 
 export async function webToCachedResponse(response: Response): Promise<CachedResponse> {
     const { url, ok, redirected, status, statusText, headers: _headers } = response;
-    const body = await readRequestBody(response);
+    const body = await readResponseBody(response);
     const headers: CachePolicy.Headers = {};
     for (const [key, value] of _headers) {
         headers[key] = value;
