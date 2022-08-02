@@ -18,7 +18,7 @@ export interface WithCacheOptions {
 }
 
 export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opts?: WithCacheOptions): Fetch {
-  const cache = opts?.cache ?? new Map();
+  const cache = opts?.cache ?? new Map<string, string>();
   return (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     let request: Request;
     if (input instanceof Request) {
@@ -30,7 +30,7 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       request = new Request(input, init);
     }
     const maybeCachedItem = await cache.get(request.url);
-    if (maybeCachedItem) {
+    if (typeof maybeCachedItem === "string") {
       // Deserialize cached policy and response
       const { policy: cachedPolicy, response: cachedResponse } = JSON.parse(maybeCachedItem);
       const policy = CachePolicy.fromObject(cachedPolicy);
