@@ -31,8 +31,14 @@ function normalizeURL(input: URL) {
 }
 
 async function getCacheKey(request: Request, init?: RequestInit) {
+  if (init?.cache === 'no-store') return null;
+
   const url = new URL(request.url);
-  const key = `${request.method}:${normalizeURL(url)}`;
+  const headers = Object.fromEntries(new Headers(init?.headers).entries());
+  let key = `${request.method}:${normalizeURL(url)}`;
+  if (Object.keys(headers).length !== 0) {
+    key += `:${unique(JSON.stringify(headers))}`;
+  }
   
   if (['POST', 'PATCH', 'PUT'].includes(request.method)) {
     let body = init?.body;

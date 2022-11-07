@@ -63,3 +63,37 @@ describe("custom cache", () => {
     expect(called).toBe(1);
   });
 });
+
+describe("behavior", () => {
+  let cache: Map<string, string>;
+  let fetchWithCache: any;
+
+  beforeEach(() => {
+    cache = new Map();
+    fetchWithCache = withCache(fetch, { cache });
+  });
+
+  it("appends to cache", async () => {
+    expect(cache.size).toBe(0);
+    const res1 = await fetchWithCache("https://example.com/", { headers: { 'x-test': '0' }});
+    expect(isCached(res1)).toBe(false);
+    expect(res1.status).toBe(200);
+    expect(cache.size).toBe(1);
+    const res2 = await fetchWithCache("https://example.com/", { headers: { 'x-test': '1' }});
+    expect(isCached(res2)).toBe(false);
+    expect(res1.status).toBe(200);
+    expect(cache.size).toBe(2);
+    const res3 = await fetchWithCache("https://example.com/", { headers: { 'x-test': '1' }});
+    expect(isCached(res3)).toBe(true);
+    expect(res1.status).toBe(200);
+    expect(cache.size).toBe(2);
+  });
+
+  it("respects no-store", async () => {
+    expect(cache.size).toBe(0);
+    const res = await fetchWithCache("https://example.com/", { cache: 'no-store' });
+    expect(isCached(res)).toBe(false);
+    expect(res.status).toBe(200);
+    expect(cache.size).toBe(0);
+  });
+});
