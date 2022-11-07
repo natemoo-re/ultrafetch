@@ -1,5 +1,11 @@
 # ultrafetch
 
+## 0.3.1
+
+### Patch Changes
+
+- 6c90ef1: Use request headers when calculating cache key. Ensure `cache: 'no-store'` is repsected.
+
 ## 0.3.0
 
 ### Minor Changes
