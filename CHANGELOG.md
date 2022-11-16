@@ -1,5 +1,11 @@
 # ultrafetch
 
+## 0.3.2
+
+### Patch Changes
+
+- 288a14e: ensure revalidated responses are properly stored
+
 ## 0.3.1
 
 ### Patch Changes
