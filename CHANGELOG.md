@@ -1,5 +1,11 @@
 # ultrafetch
 
+## 0.4.0
+
+### Minor Changes
+
+- d5eb3b5: Implement support for the `Vary` header
+
 ## 0.3.2
 
 ### Patch Changes
