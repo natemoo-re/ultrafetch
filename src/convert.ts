@@ -73,7 +73,7 @@ export function cachedResponseToWeb(cachedResponse: CachedResponse): Response {
         }
     }
     if (body) {
-        return new Response(Buffer.from(body), { ...init, headers });
+        return new Response(Buffer.from(new Uint8Array(body)), { ...init, headers });
     } else {
         return new Response(body, { ...init, headers });
     }

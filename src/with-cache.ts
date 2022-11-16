@@ -103,22 +103,22 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
         webToCachePolicyRequest(request),
         webToCachePolicyResponse(revalidatedResponse)
       );
-      const response = modified ? revalidatedResponse : cachedResponseToWeb(cachedResponse);
-
+      let response: Response = modified ? revalidatedResponse : cachedResponseToWeb(cachedResponse);
       // We can't store this response! Clear from the cache and return it.
       if (!revalidatedPolicy.storable()) {
         await cache.delete(cacheKey);
         return response;
       }
-      
+      response = updateHeaders(response, revalidatedPolicy.responseHeaders());
+
       // Update the cache with the revalidated response
       await (cache as any).set(
         cacheKey,
-        JSON.stringify({ policy: revalidatedPolicy.toObject(), response: webToCachedResponse(response) }),
+        JSON.stringify({ policy: revalidatedPolicy.toObject(), response: await webToCachedResponse(response) }),
         { ttl: revalidatedPolicy.timeToLive() }
       );
       // Return the revalidated Response
-      return updateHeaders(revalidatedResponse, revalidatedPolicy.responseHeaders()) as ReturnType<Fetch>;
+      return response as ReturnType<Fetch>;
     }
 
     // node-fetch needs a URL first
