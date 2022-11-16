@@ -90,7 +90,7 @@ export function updateHeaders(reqOrRes: Request | Response, _headers: CachePolic
         if (Array.isArray(value)) {
             value.forEach((val) => headers.append(key, val));
         } else if (typeof value !== "undefined") {
-            headers.append(key, value);
+            headers.set(key, value);
         }
     }
     if (reqOrRes instanceof Request) {

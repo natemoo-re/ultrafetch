@@ -30,14 +30,38 @@ function normalizeURL(input: URL) {
   return input.toString();
 }
 
-async function getCacheKey(request: Request, init?: RequestInit) {
+function getVaryKey(request: Request) {
+  const url = new URL(request.url);
+  return `VARY:${normalizeURL(url)}`
+}
+
+async function getCacheKey(cache: Cache, request: Request, init?: RequestInit) {
   if (init?.cache === 'no-store') return null;
 
   const url = new URL(request.url);
   const headers = Object.fromEntries(new Headers(init?.headers).entries());
   let key = `${request.method}:${normalizeURL(url)}`;
+
   if (Object.keys(headers).length !== 0) {
-    key += `:${unique(JSON.stringify(headers))}`;
+    const cachedVary = await cache.get(getVaryKey(request));
+    if (cachedVary) {
+      const vary = JSON.parse(cachedVary);
+      if (vary === '*') {
+        key += `:${unique(JSON.stringify(headers))}`;
+      } else {
+        let varies: Record<string, string> = {};
+        for (const varyKey of vary.split(',').map((v: string) => v.trim().toLowerCase())) {
+          if (headers[varyKey]) {
+            varies[varyKey] = headers[varyKey];
+          }
+        }
+        if (Object.keys(varies).length > 0) {
+          key += `:${unique(JSON.stringify(varies))}`
+        }
+      }
+    } else {
+      key += `:${unique(JSON.stringify(headers))}`;
+    }
   }
   
   if (['POST', 'PATCH', 'PUT'].includes(request.method)) {
@@ -78,7 +102,7 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       }
       request = new Request(input, init);
     }
-    const cacheKey = await getCacheKey(request, init)
+    const cacheKey = await getCacheKey(cache, request, init)
     // No valid cache key, skip custom logic
     if (!cacheKey) {
       return fetch(request.url, request);
@@ -109,7 +133,8 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
         await cache.delete(cacheKey);
         return response;
       }
-      response = updateHeaders(response, revalidatedPolicy.responseHeaders());
+
+      response = updateHeaders(response, revalidatedPolicy.responseHeaders())
 
       // Update the cache with the revalidated response
       await (cache as any).set(
@@ -117,6 +142,16 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
         JSON.stringify({ policy: revalidatedPolicy.toObject(), response: await webToCachedResponse(response) }),
         { ttl: revalidatedPolicy.timeToLive() }
       );
+
+      const vary = response.headers.get('vary');
+      if (vary) {
+        await (cache as any).set(
+          getVaryKey(request),
+          JSON.stringify(vary),
+          { ttl: revalidatedPolicy.timeToLive() }
+        );
+      }
+
       // Return the revalidated Response
       return response as ReturnType<Fetch>;
     }
@@ -136,6 +171,15 @@ export function withCache<Fetch extends (...args: any) => any>(fetch: Fetch, opt
       JSON.stringify({ policy: policy.toObject(), response: await webToCachedResponse(response) }),
       { ttl: policy.timeToLive() }
     );
+
+    const vary = response.headers.get('vary');
+    if (vary) {
+      await (cache as any).set(
+        getVaryKey(request),
+        JSON.stringify(vary),
+        { ttl: policy.timeToLive() }
+      );
+    }
 
     return response as ReturnType<Fetch>;
   }) as Fetch;
