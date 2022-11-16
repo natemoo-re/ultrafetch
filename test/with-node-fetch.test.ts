@@ -10,16 +10,16 @@ describe("node-fetch", () => {
     const res1 = await fetchWithCache("https://example.com/");
     expect(isCached(res1)).toBe(false);
     expect(res1.status).toBe(200);
-    expect(cache.size).toBe(1);
+    expect(cache.size).toBe(2);
   });
 
   it("reads from cache", async () => {
     const cache = new Map();
     const fetchWithCache = withCache(fetch, { cache });
     await fetchWithCache("https://example.com/");
-    expect(cache.size).toBe(1);
+    expect(cache.size).toBe(2);
     const res = await fetchWithCache("https://example.com/");
     expect(isCached(res)).toBe(true);
-    expect(cache.size).toBe(1);
+    expect(cache.size).toBe(2);
   });
 });
